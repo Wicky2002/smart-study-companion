@@ -1,0 +1,23 @@
+.text-output-container {
+  margin: 20px 0;
+}
+
+.text-output-container label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.output-box {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f9f9f9;
+}
+
+.placeholder {
+  color: #999;
+  font-style: italic;
+}
