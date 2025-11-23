@@ -1,35 +1,33 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from 'react';
+import TextInput from './components/TextInput';
+import TextOutput from './components/TextOutput';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [output, setOutput] = useState('');
+
+  const handleTextSubmit = (text) => {
+    // Placeholder for API call - just echo for now
+    setOutput(`You submitted: ${text}`);
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="app-container">
+      <h1>Smart Study Companion</h1>
+      
+      <TextInput
+        label="Enter your text:"
+        placeholder="Type your question or text here..."
+        onSubmit={handleTextSubmit}
+      />
+
+      <TextOutput
+        label="Response:"
+        content={output}
+        placeholder="Your response will appear here..."
+      />
+    </div>
+  );
 }
 
-export default App
+export default App;
