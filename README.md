@@ -279,9 +279,10 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-## 👨‍💻 Author
+## 👨‍💻 Authors
 
-**GitHub**: [Wicky2002](https://github.com/Wicky2002)
+- **[Wicky2002](https://github.com/Wicky2002)**
+- **[Lilvamp237](https://github.com/Lilvamp237)**
 
 ---
 
