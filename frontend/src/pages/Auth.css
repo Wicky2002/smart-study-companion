@@ -8,23 +8,24 @@
 }
 
 .auth-card {
-  background: white;
+  background: var(--card-bg);
   padding: 40px;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px var(--shadow-hover);
   width: 100%;
-  max-width: 450px;
+  max-width: 400px;
+  border: 1px solid var(--border-color);
 }
 
 .auth-card h1 {
   margin: 0 0 10px 0;
-  color: #333;
+  color: var(--text-primary);
   text-align: center;
 }
 
 .auth-subtitle {
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 30px;
 }
 
@@ -35,23 +36,25 @@
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .form-group input {
   width: 100%;
   padding: 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 14px;
   transition: border-color 0.3s;
   box-sizing: border-box;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary);
 }
 
 .btn-primary {

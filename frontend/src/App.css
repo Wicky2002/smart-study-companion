@@ -6,6 +6,8 @@
 
 #root {
   width: 100%;
+  min-height: 100vh;
+  background-color: var(--bg-primary);
 }
 
 body {
@@ -14,6 +16,34 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.page-header {
+  margin-bottom: 30px;
+}
+
+.page-header h1 {
+  color: var(--text-primary);
+  margin: 10px 0;
+}
+
+.page-header p {
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.back-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-size: 14px;
+  display: inline-block;
+  margin-bottom: 10px;
+  transition: color 0.2s ease;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+  color: var(--primary-hover);
 }
 
 .logo {
