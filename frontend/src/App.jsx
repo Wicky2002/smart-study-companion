@@ -8,13 +8,16 @@ import Sessions from './pages/Sessions';
 import Notes from './pages/Notes';
 import Progress from './pages/Progress';
 import ThemeToggle from './components/ThemeToggle';
+import Footer from './components/Footer';
 import './App.css';
 
 function App() {
   return (
     <Router>
-      <ThemeToggle />
-      <Routes>
+      <div className="app-wrapper">
+        <ThemeToggle />
+        <div className="app-content">
+          <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
@@ -26,7 +29,10 @@ function App() {
         <Route path="/progress" element={<Progress />} />
         {/* TODO: Add schedule page */}
         <Route path="/schedule" element={<div style={{padding: '20px'}}>Schedule Page - Coming Soon</div>} />
-      </Routes>
+          </Routes>
+        </div>
+        <Footer />
+      </div>
     </Router>
   );
 }
