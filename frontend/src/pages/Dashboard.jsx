@@ -1,30 +1,49 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { analyticsAPI } from '../services/api';
 import './Dashboard.css';
 
 function Dashboard() {
   const navigate = useNavigate();
-  const [userName] = useState(() => localStorage.getItem('userName') || 'Student');
+  const { user, logout, isAuthenticated } = useAuth();
+  const [stats, setStats] = useState({
+    totalHours: 0,
+    topicsCompleted: 0,
+    session_count: 0,
+    completion_rate: 0
+  });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!isAuthenticated) {
       navigate('/login');
+      return;
     }
-  }, [navigate]);
+
+    // Fetch analytics data
+    const fetchStats = async () => {
+      try {
+        const data = await analyticsAPI.getOverview();
+        setStats({
+          totalHours: data.total_study_hours || 0,
+          topicsCompleted: data.unique_topics || 0,
+          session_count: data.session_count || 0,
+          completion_rate: data.completion_rate || 0,
+        });
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [navigate, isAuthenticated]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userName');
+    logout();
     navigate('/login');
-  };
-
-  // Mock stats data
-  const stats = {
-    totalHours: 24,
-    topicsCompleted: 12,
-    quizzesTaken: 8,
-    avgAccuracy: 85
   };
 
   return (
@@ -36,30 +55,30 @@ function Dashboard() {
 
       <div className="dashboard-content">
         <div className="welcome-section">
-          <h2>Hello, {userName}! 👋</h2>
+          <h2>Hello, {user?.username || 'Student'}! 👋</h2>
           <p>Ready to continue your learning journey?</p>
         </div>
 
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon">⏱️</div>
-            <div className="stat-value">{stats.totalHours}h</div>
+            <div className="stat-value">{loading ? '...' : `${stats.totalHours}h`}</div>
             <div className="stat-label">Total Study Hours</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">📚</div>
-            <div className="stat-value">{stats.topicsCompleted}</div>
-            <div className="stat-label">Topics Completed</div>
+            <div className="stat-value">{loading ? '...' : stats.topicsCompleted}</div>
+            <div className="stat-label">Topics Studied</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">✍️</div>
-            <div className="stat-value">{stats.quizzesTaken}</div>
-            <div className="stat-label">Quizzes Taken</div>
+            <div className="stat-value">{loading ? '...' : stats.session_count}</div>
+            <div className="stat-label">Study Sessions</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">📊</div>
-            <div className="stat-value">{stats.avgAccuracy}%</div>
-            <div className="stat-label">Avg Accuracy</div>
+            <div className="stat-value">{loading ? '...' : `${Math.round(stats.completion_rate)}%`}</div>
+            <div className="stat-label">Completion Rate</div>
           </div>
         </div>
 

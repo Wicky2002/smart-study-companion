@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Auth.css';
 
 function Signup() {
   const [formData, setFormData] = useState({
-    name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -12,6 +13,7 @@ function Signup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { signup } = useAuth();
 
   const handleChange = (e) => {
     setFormData({
@@ -38,28 +40,18 @@ function Signup() {
     setLoading(true);
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock successful signup
-      localStorage.setItem('token', 'mock-token');
-      localStorage.setItem('userName', formData.name);
-      navigate('/dashboard');
-      
-      // TODO: Actual API call
-      // const response = await fetch('http://localhost:8000/api/auth/signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ 
-      //     name: formData.name,
-      //     email: formData.email,
-      //     password: formData.password 
-      //   }),
-      // });
-      // const data = await response.json();
-      // localStorage.setItem('token', data.token);
-      // navigate('/dashboard');
-    } catch {
+      const result = await signup({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Signup failed. Please try again.');
+      }
+    } catch (err) {
       setError('Signup failed. Please try again.');
     } finally {
       setLoading(false);
@@ -76,14 +68,14 @@ function Signup() {
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name">Name</label>
+            <label htmlFor="username">Username</label>
             <input
               type="text"
-              id="name"
-              name="name"
-              value={formData.name}
+              id="username"
+              name="username"
+              value={formData.username}
               onChange={handleChange}
-              placeholder="Your name"
+              placeholder="Choose a username"
               required
             />
           </div>

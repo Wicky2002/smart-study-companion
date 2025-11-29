@@ -1,51 +1,87 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { analyticsAPI } from '../services/api';
 import './Progress.css';
 
 function Progress() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [timeRange, setTimeRange] = useState('week'); // week, month, all
   const [analytics, setAnalytics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // TODO: Fetch from backend
-    // fetch(`http://localhost:8000/api/analytics/${timeRange}/`, {
-    //   headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    // }).then(res => res.json()).then(data => setAnalytics(data));
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
 
-    // Mock data
-    const mockAnalytics = {
-      totalStudyHours: 24,
-      sessionsCompleted: 12,
-      topicsStudied: 8,
-      averageSessionLength: 45,
-      topicPerformance: [
-        { topic: 'React', sessions: 5, hours: 8, accuracy: 85 },
-        { topic: 'Python', sessions: 4, hours: 6, accuracy: 78 },
-        { topic: 'CSS', sessions: 3, hours: 4, accuracy: 92 }
-      ],
-      weeklyProgress: [
-        { day: 'Mon', hours: 2 },
-        { day: 'Tue', hours: 3.5 },
-        { day: 'Wed', hours: 1.5 },
-        { day: 'Thu', hours: 4 },
-        { day: 'Fri', hours: 3 },
-        { day: 'Sat', hours: 5 },
-        { day: 'Sun', hours: 2 }
-      ],
-      recommendations: [
-        'Consider reviewing React concepts - accuracy could be improved',
-        'Great consistency this week! Keep it up',
-        'Try shorter, more focused sessions for better retention'
-      ]
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch all analytics data
+        const [overview, weeklyData, topicData, recommendations] = await Promise.all([
+          analyticsAPI.getOverview(),
+          analyticsAPI.getWeeklyProgress(),
+          analyticsAPI.getTopicPerformance(),
+          analyticsAPI.getRecommendations()
+        ]);
+
+        setAnalytics({
+          totalStudyHours: overview.total_study_hours || 0,
+          sessionsCompleted: overview.session_count || 0,
+          topicsStudied: overview.unique_topics || 0,
+          averageSessionLength: overview.avg_session_duration || 0,
+          topicPerformance: topicData.topics || [],
+          weeklyProgress: weeklyData.days || [],
+          recommendations: recommendations.recommendations || []
+        });
+      } catch (err) {
+        console.error('Failed to fetch analytics:', err);
+        setError('Failed to load analytics data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
     };
-    setAnalytics(mockAnalytics);
-  }, [timeRange]);
 
-  if (!analytics) {
-    return <div className="progress-container">Loading...</div>;
+    fetchAnalytics();
+  }, [timeRange, navigate, isAuthenticated]);
+
+  if (loading) {
+    return (
+      <div className="progress-container">
+        <header className="page-header">
+          <Link to="/dashboard" className="back-link">← Back to Dashboard</Link>
+          <h1>📈 Progress & Analytics</h1>
+        </header>
+        <div className="loading-state">Loading analytics...</div>
+      </div>
+    );
   }
 
-  const maxHours = Math.max(...analytics.weeklyProgress.map(d => d.hours));
+  if (error) {
+    return (
+      <div className="progress-container">
+        <header className="page-header">
+          <Link to="/dashboard" className="back-link">← Back to Dashboard</Link>
+          <h1>📈 Progress & Analytics</h1>
+        </header>
+        <div className="error-message">{error}</div>
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return <div className="progress-container">No data available.</div>;
+  }
+
+  const maxHours = analytics.weeklyProgress.length > 0 
+    ? Math.max(...analytics.weeklyProgress.map(d => d.hours || 0))
+    : 1;
 
   return (
     <div className="progress-container">
@@ -95,62 +131,68 @@ function Progress() {
           </div>
           <div className="stat-card">
             <div className="stat-icon">⏰</div>
-            <div className="stat-value">{analytics.averageSessionLength} min</div>
+            <div className="stat-value">{Math.round(analytics.averageSessionLength)} min</div>
             <div className="stat-label">Avg Session Length</div>
           </div>
         </div>
 
-        <div className="chart-section">
-          <h3>Weekly Study Hours</h3>
-          <div className="bar-chart">
-            {analytics.weeklyProgress.map((day, index) => (
-              <div key={index} className="bar-container">
-                <div className="bar-wrapper">
-                  <div
-                    className="bar"
-                    style={{ height: `${(day.hours / maxHours) * 100}%` }}
-                  >
-                    <span className="bar-value">{day.hours}h</span>
+        {analytics.weeklyProgress.length > 0 && (
+          <div className="chart-section">
+            <h3>Weekly Study Hours</h3>
+            <div className="bar-chart">
+              {analytics.weeklyProgress.map((day, index) => (
+                <div key={index} className="bar-container">
+                  <div className="bar-wrapper">
+                    <div
+                      className="bar"
+                      style={{ height: `${((day.hours || 0) / maxHours) * 100}%` }}
+                    >
+                      <span className="bar-value">{day.hours || 0}h</span>
+                    </div>
+                  </div>
+                  <div className="bar-label">{day.day || day.date}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {analytics.topicPerformance.length > 0 && (
+          <div className="topic-performance-section">
+            <h3>Topic Performance</h3>
+            <div className="performance-list">
+              {analytics.topicPerformance.map((topic, index) => (
+                <div key={index} className="performance-item">
+                  <div className="performance-header">
+                    <span className="topic-name">{topic.topic}</span>
+                    <span className="topic-stats">
+                      {topic.session_count || topic.sessions} sessions • {topic.total_hours || topic.hours}h
+                    </span>
+                  </div>
+                  <div className="accuracy-bar">
+                    <div
+                      className="accuracy-fill"
+                      style={{ width: `${topic.completion_rate || topic.accuracy || 0}%` }}
+                    >
+                      <span className="accuracy-text">{Math.round(topic.completion_rate || topic.accuracy || 0)}%</span>
+                    </div>
                   </div>
                 </div>
-                <div className="bar-label">{day.day}</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="topic-performance-section">
-          <h3>Topic Performance</h3>
-          <div className="performance-list">
-            {analytics.topicPerformance.map((topic, index) => (
-              <div key={index} className="performance-item">
-                <div className="performance-header">
-                  <span className="topic-name">{topic.topic}</span>
-                  <span className="topic-stats">
-                    {topic.sessions} sessions • {topic.hours}h
-                  </span>
-                </div>
-                <div className="accuracy-bar">
-                  <div
-                    className="accuracy-fill"
-                    style={{ width: `${topic.accuracy}%` }}
-                  >
-                    <span className="accuracy-text">{topic.accuracy}%</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+        {analytics.recommendations.length > 0 && (
+          <div className="recommendations-section">
+            <h3>💡 Recommendations</h3>
+            <ul className="recommendations-list">
+              {analytics.recommendations.map((rec, index) => (
+                <li key={index}>{rec}</li>
+              ))}
+            </ul>
           </div>
-        </div>
-
-        <div className="recommendations-section">
-          <h3>💡 Recommendations</h3>
-          <ul className="recommendations-list">
-            {analytics.recommendations.map((rec, index) => (
-              <li key={index}>{rec}</li>
-            ))}
-          </ul>
-        </div>
+        )}
       </div>
     </div>
   );

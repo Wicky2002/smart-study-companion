@@ -1,87 +1,139 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { aiAPI } from '../services/api';
 import TextInput from '../components/TextInput';
 import TextOutput from '../components/TextOutput';
-import Quiz from '../components/Quiz';
 import './AIAssistant.css';
 
 function AIAssistant() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [output, setOutput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [quizQuestions, setQuizQuestions] = useState(null);
-  const [activeTab, setActiveTab] = useState('summary'); // 'summary' or 'quiz'
+  const [activeTab, setActiveTab] = useState('summary'); // 'summary', 'plan', 'flashcards', 'advice'
+  const [inputText, setInputText] = useState('');
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [navigate, isAuthenticated]);
+
+  const handleGenerateSummary = async (text) => {
+    setLoading(true);
+    try {
+      const data = await aiAPI.generateSummary({ text });
+      setOutput(data.summary || data.message || 'Summary generated successfully!');
+    } catch (error) {
+      console.error('Failed to generate summary:', error);
+      setOutput(`Error: ${error.message || 'Failed to generate summary'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateStudyPlan = async (text) => {
+    setLoading(true);
+    try {
+      const data = await aiAPI.generateStudyPlan({ 
+        topic: text,
+        duration_weeks: 4,
+        difficulty: 'intermediate'
+      });
+      setOutput(data.study_plan || data.message || 'Study plan generated successfully!');
+    } catch (error) {
+      console.error('Failed to generate study plan:', error);
+      setOutput(`Error: ${error.message || 'Failed to generate study plan'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateFlashcards = async (text) => {
+    setLoading(true);
+    try {
+      const data = await aiAPI.generateFlashcards({ 
+        topic: text,
+        count: 10
+      });
+      if (data.flashcards && Array.isArray(data.flashcards)) {
+        const formatted = data.flashcards.map((card, idx) => 
+          `${idx + 1}. Q: ${card.question}\n   A: ${card.answer}\n`
+        ).join('\n');
+        setOutput(formatted);
+      } else {
+        setOutput(data.message || 'Flashcards generated successfully!');
+      }
+    } catch (error) {
+      console.error('Failed to generate flashcards:', error);
+      setOutput(`Error: ${error.message || 'Failed to generate flashcards'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGetAdvice = async (text) => {
+    setLoading(true);
+    try {
+      const data = await aiAPI.getStudyAdvice({ question: text });
+      setOutput(data.advice || data.message || 'Advice generated successfully!');
+    } catch (error) {
+      console.error('Failed to get study advice:', error);
+      setOutput(`Error: ${error.message || 'Failed to get study advice'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleTextSubmit = async (text) => {
-    setLoading(true);
-    try {
-      // Mock response until backend summarize endpoint is ready
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-      setOutput(`📝 Summary of your text:\n\n"${text}"\n\n⏳ Waiting for backend /api/summarize endpoint to be implemented...`);
-      
-      // TODO: Replace with actual API call when backend is ready:
-      // const response = await fetch('http://localhost:8000/api/summarize', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ text: text }),
-      // });
-      // const data = await response.json();
-      // setOutput(data.summary || data.message);
-    } catch (error) {
-      setOutput(`Error: ${error.message}`);
-    } finally {
-      setLoading(false);
+    setInputText(text);
+    switch (activeTab) {
+      case 'summary':
+        await handleGenerateSummary(text);
+        break;
+      case 'plan':
+        await handleGenerateStudyPlan(text);
+        break;
+      case 'flashcards':
+        await handleGenerateFlashcards(text);
+        break;
+      case 'advice':
+        await handleGetAdvice(text);
+        break;
+      default:
+        break;
     }
   };
 
-  const handleGenerateQuiz = async () => {
-    setLoading(true);
-    try {
-      // Mock quiz generation - replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Sample quiz questions
-      const mockQuiz = [
-        {
-          question: "What is the capital of France?",
-          options: ["London", "Berlin", "Paris", "Madrid"],
-          correctAnswer: 2,
-          explanation: "Paris is the capital and most populous city of France."
-        },
-        {
-          question: "Which programming language is known for web development?",
-          options: ["Python", "JavaScript", "C++", "Java"],
-          correctAnswer: 1,
-          explanation: "JavaScript is primarily used for web development and runs in browsers."
-        },
-        {
-          question: "What does AI stand for?",
-          options: ["Artificial Intelligence", "Automated Interface", "Advanced Integration", "Applied Information"],
-          correctAnswer: 0,
-          explanation: "AI stands for Artificial Intelligence, the simulation of human intelligence by machines."
-        }
-      ];
-      
-      setQuizQuestions(mockQuiz);
-      setActiveTab('quiz');
-      
-      // TODO: Replace with actual API call when backend is ready:
-      // const response = await fetch('http://localhost:8000/api/generate-quiz', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ text: yourText }),
-      // });
-      // const data = await response.json();
-      // setQuizQuestions(data.questions);
-    } catch (error) {
-      setOutput(`Error generating quiz: ${error.message}`);
-    } finally {
-      setLoading(false);
+  const getPlaceholder = () => {
+    switch (activeTab) {
+      case 'summary':
+        return 'Paste your study material here to get a summary...';
+      case 'plan':
+        return 'Enter a topic to generate a study plan (e.g., "React Hooks")...';
+      case 'flashcards':
+        return 'Enter a topic to generate flashcards (e.g., "Python Basics")...';
+      case 'advice':
+        return 'Ask a study-related question (e.g., "How to improve memory retention?")...';
+      default:
+        return 'Enter your text here...';
     }
   };
 
-  const handleQuizComplete = (score, total) => {
-    console.log(`Quiz completed! Score: ${score}/${total}`);
-    // You can add additional logic here, like saving the score to the backend
+  const getLabel = () => {
+    switch (activeTab) {
+      case 'summary':
+        return 'Text to Summarize:';
+      case 'plan':
+        return 'Topic for Study Plan:';
+      case 'flashcards':
+        return 'Topic for Flashcards:';
+      case 'advice':
+        return 'Your Question:';
+      default:
+        return 'Input:';
+    }
   };
 
   return (
@@ -89,57 +141,50 @@ function AIAssistant() {
       <header className="page-header">
         <Link to="/dashboard" className="back-link">← Back to Dashboard</Link>
         <h1>🤖 AI Study Assistant</h1>
-        <p>Get summaries and generate quizzes from your study materials</p>
+        <p>Get AI-powered help with summaries, study plans, flashcards, and advice</p>
       </header>
 
       <div className="ai-content">
         <div className="tabs">
           <button
             className={`tab ${activeTab === 'summary' ? 'active' : ''}`}
-            onClick={() => setActiveTab('summary')}
+            onClick={() => { setActiveTab('summary'); setOutput(''); }}
           >
             📝 Summary
           </button>
           <button
-            className={`tab ${activeTab === 'quiz' ? 'active' : ''}`}
-            onClick={() => setActiveTab('quiz')}
+            className={`tab ${activeTab === 'plan' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('plan'); setOutput(''); }}
           >
-            ✍️ Quiz
+            📋 Study Plan
+          </button>
+          <button
+            className={`tab ${activeTab === 'flashcards' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('flashcards'); setOutput(''); }}
+          >
+            🎴 Flashcards
+          </button>
+          <button
+            className={`tab ${activeTab === 'advice' ? 'active' : ''}`}
+            onClick={() => { setActiveTab('advice'); setOutput(''); }}
+          >
+            💡 Advice
           </button>
         </div>
 
-        {activeTab === 'summary' ? (
-          <>
-            <TextInput
-              label="Enter your text or question:"
-              placeholder="Type your question or paste text here to get a summary..."
-              onSubmit={handleTextSubmit}
-            />
+        <TextInput
+          label={getLabel()}
+          placeholder={getPlaceholder()}
+          onSubmit={handleTextSubmit}
+        />
 
-            {loading && <div className="loading-spinner">⏳ Processing...</div>}
+        {loading && <div className="loading-spinner">⏳ Processing...</div>}
 
-            <TextOutput
-              label="AI Response:"
-              content={output}
-              placeholder="Your AI-generated response will appear here..."
-            />
-          </>
-        ) : (
-          <>
-            <div className="quiz-section">
-              {!quizQuestions ? (
-                <div className="quiz-prompt">
-                  <p>Generate a quiz to test your knowledge!</p>
-                  <button onClick={handleGenerateQuiz} className="btn-generate-quiz" disabled={loading}>
-                    {loading ? 'Generating...' : '🎯 Generate Quiz'}
-                  </button>
-                </div>
-              ) : (
-                <Quiz questions={quizQuestions} onComplete={handleQuizComplete} />
-              )}
-            </div>
-          </>
-        )}
+        <TextOutput
+          label="AI Response:"
+          content={output}
+          placeholder="Your AI-generated response will appear here..."
+        />
       </div>
     </div>
   );

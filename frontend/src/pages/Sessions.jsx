@@ -1,59 +1,39 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { sessionsAPI } from '../services/api';
 import './Sessions.css';
 
 function Sessions() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [sessions, setSessions] = useState([]);
   const [filter, setFilter] = useState('all'); // all, completed, active
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // TODO: Fetch from backend
-    // fetch('http://localhost:8000/api/study/sessions/', {
-    //   headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    // }).then(res => res.json()).then(data => setSessions(data));
-
-    // Mock data
-    const mockSessions = [
-      {
-        id: 1,
-        topic: 'React Hooks',
-        duration_minutes: 60,
-        difficulty: 'intermediate',
-        created_at: '2025-11-25T10:00:00Z',
-        completed: true
-      },
-      {
-        id: 2,
-        topic: 'Python Decorators',
-        duration_minutes: 45,
-        difficulty: 'advanced',
-        created_at: '2025-11-26T14:30:00Z',
-        completed: false
-      },
-      {
-        id: 3,
-        topic: 'CSS Grid Layout',
-        duration_minutes: 30,
-        difficulty: 'beginner',
-        created_at: '2025-11-27T09:15:00Z',
-        completed: true
-      }
-    ];
-    setSessions(mockSessions);
-  }, []);
-
-  const filteredSessions = sessions.filter(session => {
-    if (filter === 'completed') return session.completed;
-    if (filter === 'active') return !session.completed;
-    return true;
-  });
-
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this session?')) {
-      // TODO: API call to delete
-      setSessions(sessions.filter(s => s.id !== id));
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
     }
-  };
+
+    const fetchSessions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await sessionsAPI.getAll();
+        setSessions(data.results || data);
+      } catch (err) {
+        console.error('Failed to fetch sessions:', err);
+        setError('Failed to load sessions. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, [navigate, isAuthenticated]);
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -65,6 +45,36 @@ function Sessions() {
     });
   };
 
+  const filteredSessions = sessions.filter(session => {
+    if (filter === 'completed') return session.completed;
+    if (filter === 'active') return !session.completed;
+    return true;
+  });
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this session?')) {
+      try {
+        await sessionsAPI.delete(id);
+        setSessions(sessions.filter(s => s.id !== id));
+      } catch (err) {
+        console.error('Failed to delete session:', err);
+        alert('Failed to delete session. Please try again.');
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="sessions-container">
+        <header className="page-header">
+          <Link to="/dashboard" className="back-link">← Back to Dashboard</Link>
+          <h1>📋 Study Sessions</h1>
+        </header>
+        <div className="loading-state">Loading sessions...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="sessions-container">
       <header className="page-header">
@@ -74,6 +84,8 @@ function Sessions() {
       </header>
 
       <div className="sessions-content">
+        {error && <div className="error-message">{error}</div>}
+        
         <div className="sessions-toolbar">
           <div className="filter-buttons">
             <button

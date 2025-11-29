@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { notesAPI } from '../services/api';
 import './Notes.css';
 
 function Notes() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [notes, setNotes] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -13,55 +19,52 @@ function Notes() {
   });
 
   useEffect(() => {
-    // TODO: Fetch from backend
-    // fetch('http://localhost:8000/api/study/notes/', {
-    //   headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    // }).then(res => res.json()).then(data => setNotes(data));
-
-    // Mock data
-    const mockNotes = [
-      {
-        id: 1,
-        title: 'React Hooks Summary',
-        content: 'useState - manages state\nuseEffect - handles side effects\nuseContext - shares data across components',
-        related_topic: 'React',
-        created_at: '2025-11-25T10:00:00Z'
-      },
-      {
-        id: 2,
-        title: 'Python List Comprehensions',
-        content: 'Syntax: [expression for item in iterable if condition]\nExample: squares = [x**2 for x in range(10)]',
-        related_topic: 'Python',
-        created_at: '2025-11-26T14:30:00Z'
-      }
-    ];
-    setNotes(mockNotes);
-  }, []);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    if (editingNote) {
-      // Update existing note
-      setNotes(notes.map(note => 
-        note.id === editingNote.id 
-          ? { ...note, ...formData, created_at: note.created_at }
-          : note
-      ));
-    } else {
-      // Create new note
-      const newNote = {
-        id: Date.now(),
-        ...formData,
-        created_at: new Date().toISOString()
-      };
-      setNotes([newNote, ...notes]);
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
     }
 
-    // Reset form
-    setFormData({ title: '', content: '', related_topic: '' });
-    setShowForm(false);
-    setEditingNote(null);
+    const fetchNotes = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await notesAPI.getAll();
+        setNotes(data.results || data);
+      } catch (err) {
+        console.error('Failed to fetch notes:', err);
+        setError('Failed to load notes. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNotes();
+  }, [navigate, isAuthenticated]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      if (editingNote) {
+        // Update existing note
+        const updated = await notesAPI.update(editingNote.id, formData);
+        setNotes(notes.map(note => 
+          note.id === editingNote.id ? updated : note
+        ));
+      } else {
+        // Create new note
+        const newNote = await notesAPI.create(formData);
+        setNotes([newNote, ...notes]);
+      }
+
+      // Reset form
+      setFormData({ title: '', content: '', related_topic: '' });
+      setShowForm(false);
+      setEditingNote(null);
+    } catch (err) {
+      console.error('Failed to save note:', err);
+      alert('Failed to save note. Please try again.');
+    }
   };
 
   const handleEdit = (note) => {
@@ -74,9 +77,15 @@ function Notes() {
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this note?')) {
-      setNotes(notes.filter(n => n.id !== id));
+      try {
+        await notesAPI.delete(id);
+        setNotes(notes.filter(n => n.id !== id));
+      } catch (err) {
+        console.error('Failed to delete note:', err);
+        alert('Failed to delete note. Please try again.');
+      }
     }
   };
 
@@ -94,6 +103,18 @@ function Notes() {
     });
   };
 
+  if (loading) {
+    return (
+      <div className="notes-container">
+        <header className="page-header">
+          <Link to="/dashboard" className="back-link">← Back to Dashboard</Link>
+          <h1>📝 Study Notes</h1>
+        </header>
+        <div className="loading-state">Loading notes...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="notes-container">
       <header className="page-header">
@@ -103,6 +124,8 @@ function Notes() {
       </header>
 
       <div className="notes-content">
+        {error && <div className="error-message">{error}</div>}
+        
         <div className="notes-toolbar">
           <button
             onClick={() => setShowForm(!showForm)}

@@ -1,15 +1,24 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { sessionsAPI } from '../services/api';
 import './NewSession.css';
 
 function NewSession() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     topic: '',
     duration_minutes: 30,
     difficulty: 'intermediate',
     notes: ''
   });
+  const [loading, setLoading] = useState(false);
+
+  if (!isAuthenticated) {
+    navigate('/login');
+    return null;
+  }
 
   const handleChange = (e) => {
     setFormData({
@@ -21,19 +30,17 @@ function NewSession() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // TODO: Connect to backend API
-    // const response = await fetch('http://localhost:8000/api/study/sessions/', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'Authorization': `Bearer ${localStorage.getItem('token')}`
-    //   },
-    //   body: JSON.stringify(formData)
-    // });
-    
-    console.log('Creating session:', formData);
-    alert('Session created! (Mock - backend not connected)');
-    navigate('/sessions');
+    try {
+      setLoading(true);
+      await sessionsAPI.create(formData);
+      alert('Session created successfully!');
+      navigate('/sessions');
+    } catch (error) {
+      console.error('Failed to create session:', error);
+      alert('Failed to create session. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -109,8 +116,8 @@ function NewSession() {
             <button type="button" onClick={() => navigate('/dashboard')} className="btn-cancel">
               Cancel
             </button>
-            <button type="submit" className="btn-submit">
-              Start Session
+            <button type="submit" className="btn-submit" disabled={loading}>
+              {loading ? 'Creating...' : 'Start Session'}
             </button>
           </div>
         </form>

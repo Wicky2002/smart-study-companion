@@ -165,7 +165,7 @@ REST_FRAMEWORK = {
 }
 
 # CORS Settings
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:5175').split(',')
 
 CORS_ALLOW_CREDENTIALS = True
 

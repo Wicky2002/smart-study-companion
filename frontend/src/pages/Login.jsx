@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Auth.css';
 
 function Login() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,23 +17,13 @@ function Login() {
     setLoading(true);
 
     try {
-      // TODO: Replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const result = await login({ username, password });
       
-      // Mock successful login
-      localStorage.setItem('token', 'mock-token');
-      localStorage.setItem('userName', email.split('@')[0]);
-      navigate('/dashboard');
-      
-      // TODO: Actual API call
-      // const response = await fetch('http://localhost:8000/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      // const data = await response.json();
-      // localStorage.setItem('token', data.token);
-      // navigate('/dashboard');
+      if (result.success) {
+        navigate('/dashboard');
+      } else {
+        setError(result.error || 'Login failed. Please check your credentials.');
+      }
     } catch (err) {
       setError('Login failed. Please try again.');
     } finally {
@@ -49,13 +41,13 @@ function Login() {
         
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">Email</label>
+            <label htmlFor="username">Username</label>
             <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your.email@example.com"
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
               required
             />
           </div>
@@ -78,7 +70,6 @@ function Login() {
         </form>
 
         <div className="auth-links">
-          <Link to="/forgot-password" className="link">Forgot Password?</Link>
           <p>Don't have an account? <Link to="/signup" className="link">Sign Up</Link></p>
         </div>
       </div>
