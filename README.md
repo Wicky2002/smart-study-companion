@@ -43,6 +43,11 @@ A full-stack web application that helps students organize their study sessions, 
 - **django-cors-headers** - CORS handling
 - **django-filter** - Advanced filtering
 - **drf-yasg** - API documentation (Swagger/ReDoc)
+- **🤖 AI Models**:
+  - **Transformers 4.36.0** - Hugging Face ML library
+  - **PyTorch 2.1.2** - Deep learning framework
+  - **BART** - Text summarization model
+  - **GPT-2** - Text generation model
 
 ### Frontend
 - **React 19.2.0** - UI framework
@@ -70,6 +75,8 @@ python manage.py runserver
 ```
 Backend runs on: **http://localhost:8000**
 
+**Note**: First-time installation will download AI models (~2GB) on first API call to AI endpoints. This is a one-time process.
+
 #### 2. Frontend Setup
 ```powershell
 cd frontend
@@ -88,6 +95,7 @@ Navigate to: **http://localhost:5173**
 - **[QUICK_START.md](QUICK_START.md)** - Get up and running in minutes
 - **[INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md)** - Complete integration documentation
 - **[INTEGRATION_SUMMARY.md](INTEGRATION_SUMMARY.md)** - Architecture and features overview
+- **[AI README](backend/ai/README_AI.md)** - 🤖 AI Features, models, and customization
 - **[BACKEND_FEATURES_IMPLEMENTED.md](backend/BACKEND_FEATURES_IMPLEMENTED.md)** - Backend API details
 - **[API_DOCUMENTATION.md](backend/API_DOCUMENTATION.md)** - API endpoints reference
 
@@ -243,16 +251,18 @@ VITE_API_URL=http://localhost:8000
 
 ## 🚧 Known Limitations
 
-- AI features return mock responses (OpenAI integration requires API key)
 - SQLite database (switch to PostgreSQL for production)
 - Single user mode (no multi-tenancy)
 - No real-time features (WebSocket not implemented)
+- AI models require initial download (~2GB) on first use
+- AI processing may be slower on low-end hardware (CPU-based)
 
 ---
 
 ## 📈 Future Enhancements
 
-- [ ] Real OpenAI integration for AI features
+- [ ] GPU acceleration for faster AI processing
+- [ ] Additional AI models (question answering, concept extraction)
 - [ ] Real-time collaboration with WebSockets
 - [ ] Mobile app (React Native)
 - [ ] Spaced repetition algorithm for flashcards
