@@ -16,9 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include, re_path
+from django.shortcuts import redirect
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+
+# Root view that redirects to API documentation
+def root_view(request):
+    return redirect('schema-swagger-ui')
 
 # API Documentation Schema
 schema_view = get_schema_view(
@@ -35,6 +40,9 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    # Root path - redirect to API documentation
+    path('', root_view, name='root'),
+    
     path('admin/', admin.site.urls),
     
     # Authentication endpoints

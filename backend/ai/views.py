@@ -97,35 +97,40 @@ def generate_study_plan(request):
 def generate_summary(request):
     """
     Generate a summary of study notes or content using AI.
-    Expected input: { "content": "..." }
+    Expected input: { "content": "..." } or { "text": "..." }
     """
-    content = request.data.get('content', '')
+    # Handle both 'content' and 'text' field names
+    content = request.data.get('content') or request.data.get('text', '')
     
     if not content:
         return Response(
-            {'error': 'Content is required'},
+            {'error': 'Content or text is required'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
-    if len(content.strip()) < 100:
+    # Handle if content is a dict
+    if isinstance(content, dict):
+        content = str(content)
+    
+    if len(str(content).strip()) < 100:
         return Response(
             {'error': 'Content too short. Please provide at least 100 characters for meaningful summarization.'},
             status=status.HTTP_400_BAD_REQUEST
         )
     
     try:
-        prompt = f"Summarize the following content: {content[:200]}..."
+        prompt = f"Summarize the following content: {str(content)[:200]}..."
         
         # Use AI to generate summary
-        summary_text = summarize_text(content, max_length=150, min_length=50)
-        key_points = extract_key_points(content, num_points=3)
+        summary_text = summarize_text(str(content), max_length=150, min_length=50)
+        key_points = extract_key_points(str(content), num_points=3)
         
         ai_response = {
             'summary': summary_text,
             'key_points': key_points,
-            'word_count': len(content.split()),
+            'word_count': len(str(content).split()),
             'summary_word_count': len(summary_text.split()),
-            'compression_ratio': f"{(len(summary_text) / len(content) * 100):.1f}%"
+            'compression_ratio': f"{(len(summary_text) / len(str(content)) * 100):.1f}%"
         }
         
         # Log the AI request
@@ -151,16 +156,32 @@ def generate_summary(request):
 def generate_flashcards(request):
     """
     Generate flashcards from study content using AI.
-    Expected input: { "content": "...", "num_cards": 5 }
+    Expected input: { "content": "...", "num_cards": 5 } or { "text": "...", "count": 5 }
     """
-    content = request.data.get('content', '')
-    num_cards = request.data.get('num_cards', 5)
+    # Handle both 'content'/'text' and 'num_cards'/'count'
+    content = request.data.get('content') or request.data.get('text', '')
+    num_cards = request.data.get('num_cards') or request.data.get('count', 5)
+    
+    if not content:
+        return Response(
+            {'error': 'Content or text is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Handle if content is a dict
+    if isinstance(content, dict):
+        content = str(content)
     
     if not content:
         return Response(
             {'error': 'Content is required'},
             status=status.HTTP_400_BAD_REQUEST
         )
+    
+    try:
+        num_cards = int(num_cards)
+    except (ValueError, TypeError):
+        num_cards = 5
     
     if num_cards < 1 or num_cards > 20:
         return Response(
@@ -169,24 +190,24 @@ def generate_flashcards(request):
         )
     
     try:
-        prompt = f"Generate {num_cards} flashcards from: {content[:200]}..."
+        prompt = f"Generate {num_cards} flashcards from: {str(content)[:200]}..."
         
         # Use AI to generate flashcards
-        flashcards = generate_flashcard_questions(content, num_cards)
+        flashcards = generate_flashcard_questions(str(content), num_cards)
         
         # If AI generation fails or produces too few cards, add default ones
         while len(flashcards) < num_cards:
             flashcards.append({
                 'id': len(flashcards) + 1,
                 'question': f'What are the main concepts discussed in the content?',
-                'answer': content[:100] + '...',
-                'full_context': content[:200]
+                'answer': str(content)[:100] + '...',
+                'full_context': str(content)[:200]
             })
         
         ai_response = {
             'flashcards': flashcards[:num_cards],
             'total_generated': len(flashcards),
-            'source_length': len(content.split())
+            'source_length': len(str(content).split())
         }
         
         # Log the AI request
