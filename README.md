@@ -24,7 +24,7 @@ A full-stack web application that helps students organize their study sessions, 
 - Track total study hours and session count
 - View weekly progress charts
 - Analyze performance by topic
-- Get personalized recommendations
+- Get personalized recommendations depending on the input
 
 ### 🔐 User Authentication
 - Secure JWT-based authentication
