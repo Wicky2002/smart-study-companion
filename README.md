@@ -15,10 +15,14 @@ A full-stack web application that helps students organize their study sessions, 
 - Search and filter functionality
 
 ### 🤖 AI-Powered Study Assistant
-- **Text Summarization**: Get concise summaries of study materials
-- **Study Plan Generation**: Create personalized study schedules
+- **Text Summarization**: Get concise summaries of study materials using BART model
+- **Study Plan Generation**: Create personalized study schedules with GPT-2
 - **Flashcard Generation**: Auto-generate flashcards from topics
 - **Study Advice**: Get AI-powered study tips and recommendations
+- **Question Answering**: Ask questions about your study content and get AI answers
+- **Sentiment Analysis**: Analyze the sentiment of your study notes
+- **Keyword Extraction**: Identify important keywords and concepts
+- **Quiz Generation**: Generate multiple-choice quizzes from study materials
 
 ### 📊 Progress Analytics
 - Track total study hours and session count
@@ -46,8 +50,9 @@ A full-stack web application that helps students organize their study sessions, 
 - **🤖 AI Models**:
   - **Transformers 4.36.0** - Hugging Face ML library
   - **PyTorch 2.1.2** - Deep learning framework
-  - **BART** - Text summarization model
-  - **GPT-2** - Text generation model
+  - **BART (facebook/bart-large-cnn)** - Text summarization
+  - **GPT-2** - Text generation for study plans
+  - **DistilBERT** - Question answering and sentiment analysis
 
 ### Frontend
 - **React 19.2.0** - UI framework
@@ -129,10 +134,14 @@ When backend is running:
 - `DELETE /api/notes/{id}/` - Delete note
 
 ### AI Assistant
-- `POST /api/ai/generate-summary/` - Generate text summary
-- `POST /api/ai/generate-study-plan/` - Create study plan
+- `POST /api/ai/generate-summary/` - Generate text summary (BART model)
+- `POST /api/ai/generate-study-plan/` - Create study plan (GPT-2)
 - `POST /api/ai/generate-flashcards/` - Generate flashcards
 - `POST /api/ai/get-study-advice/` - Get study advice
+- `POST /api/ai/answer-question/` - Answer questions from context (DistilBERT)
+- `POST /api/ai/analyze-sentiment/` - Analyze study note sentiment
+- `POST /api/ai/extract-keywords/` - Extract important keywords
+- `POST /api/ai/generate/quiz/` - Generate multiple-choice quizzes
 
 ### Analytics
 - `GET /api/analytics/overview/` - Overall statistics

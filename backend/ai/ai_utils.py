@@ -4,12 +4,16 @@ These models run locally without requiring API keys.
 """
 from transformers import pipeline
 import logging
+import re
+from collections import Counter
 
 logger = logging.getLogger(__name__)
 
 # Cache for loaded models
 _summarization_model = None
 _text_generation_model = None
+_question_answering_model = None
+_sentiment_model = None
 
 
 def get_summarization_model():
@@ -48,6 +52,42 @@ def get_text_generation_model():
             logger.error(f"Failed to load text generation model: {e}")
             _text_generation_model = None
     return _text_generation_model
+
+
+def get_question_answering_model():
+    """Get or initialize the question answering model."""
+    global _question_answering_model
+    if _question_answering_model is None:
+        try:
+            logger.info("Loading question answering model...")
+            _question_answering_model = pipeline(
+                "question-answering",
+                model="distilbert-base-cased-distilled-squad",
+                device=-1
+            )
+            logger.info("Question answering model loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load question answering model: {e}")
+            _question_answering_model = None
+    return _question_answering_model
+
+
+def get_sentiment_model():
+    """Get or initialize the sentiment analysis model."""
+    global _sentiment_model
+    if _sentiment_model is None:
+        try:
+            logger.info("Loading sentiment analysis model...")
+            _sentiment_model = pipeline(
+                "sentiment-analysis",
+                model="distilbert-base-uncased-finetuned-sst-2-english",
+                device=-1
+            )
+            logger.info("Sentiment model loaded successfully")
+        except Exception as e:
+            logger.error(f"Failed to load sentiment model: {e}")
+            _sentiment_model = None
+    return _sentiment_model
 
 
 def summarize_text(content, max_length=150, min_length=50):
@@ -237,3 +277,188 @@ def extract_key_points(content, num_points=3):
     except Exception as e:
         logger.error(f"Key point extraction error: {e}")
         return [content[:200]]
+
+
+def answer_question(question, context):
+    """
+    Answer a question based on provided context using AI.
+    
+    Args:
+        question (str): Question to answer
+        context (str): Context containing the answer
+    
+    Returns:
+        dict: Answer with confidence score
+    """
+    try:
+        model = get_question_answering_model()
+        if model is None:
+            return {
+                'answer': 'AI model not available. Please try again later.',
+                'confidence': 0.0
+            }
+        
+        result = model(question=question, context=context)
+        
+        return {
+            'answer': result['answer'],
+            'confidence': round(result['score'] * 100, 2),
+            'start': result['start'],
+            'end': result['end']
+        }
+    
+    except Exception as e:
+        logger.error(f"Question answering error: {e}")
+        return {
+            'answer': f"Error answering question: {str(e)}",
+            'confidence': 0.0
+        }
+
+
+def analyze_study_sentiment(text):
+    """
+    Analyze the sentiment of study notes or reflections.
+    
+    Args:
+        text (str): Text to analyze
+    
+    Returns:
+        dict: Sentiment analysis results
+    """
+    try:
+        model = get_sentiment_model()
+        if model is None:
+            return {
+                'sentiment': 'neutral',
+                'confidence': 0.0,
+                'label': 'NEUTRAL'
+            }
+        
+        result = model(text[:512])[0]  # Limit to 512 tokens
+        
+        return {
+            'sentiment': result['label'].lower(),
+            'confidence': round(result['score'] * 100, 2),
+            'label': result['label']
+        }
+    
+    except Exception as e:
+        logger.error(f"Sentiment analysis error: {e}")
+        return {
+            'sentiment': 'neutral',
+            'confidence': 0.0,
+            'label': 'NEUTRAL',
+            'error': str(e)
+        }
+
+
+def extract_keywords(text, num_keywords=10):
+    """
+    Extract important keywords from text using frequency analysis.
+    
+    Args:
+        text (str): Text to analyze
+        num_keywords (int): Number of keywords to extract
+    
+    Returns:
+        list: List of (keyword, frequency) tuples
+    """
+    try:
+        # Remove punctuation and convert to lowercase
+        text_clean = re.sub(r'[^\w\s]', ' ', text.lower())
+        
+        # Common stop words to exclude
+        stop_words = {
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+            'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been',
+            'be', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+            'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these',
+            'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which',
+            'who', 'when', 'where', 'why', 'how', 'all', 'each', 'every', 'both',
+            'few', 'more', 'most', 'other', 'some', 'such', 'than', 'too', 'very'
+        }
+        
+        # Split into words and filter
+        words = [w for w in text_clean.split() 
+                if len(w) > 3 and w not in stop_words]
+        
+        # Count frequencies
+        word_freq = Counter(words)
+        
+        # Get top keywords
+        top_keywords = word_freq.most_common(num_keywords)
+        
+        return [{'keyword': word, 'frequency': freq} for word, freq in top_keywords]
+    
+    except Exception as e:
+        logger.error(f"Keyword extraction error: {e}")
+        return []
+
+
+def generate_quiz_questions(content, num_questions=5):
+    """
+    Generate quiz questions from study content.
+    
+    Args:
+        content (str): Source content
+        num_questions (int): Number of questions to generate
+    
+    Returns:
+        list: List of quiz questions with multiple choice options
+    """
+    try:
+        # Split into sentences
+        sentences = [s.strip() for s in content.split('.') if len(s.strip()) > 20]
+        
+        if not sentences:
+            return []
+        
+        questions = []
+        for i, sentence in enumerate(sentences[:num_questions]):
+            words = sentence.split()
+            if len(words) < 5:
+                continue
+            
+            # Create a fill-in-the-blank question
+            # Choose a meaningful word (not too short, not at start/end)
+            mid_words = [(idx, w) for idx, w in enumerate(words[1:-1], 1) 
+                        if len(w) > 4 and w.isalpha()]
+            
+            if not mid_words:
+                continue
+            
+            # Select word to blank out
+            blank_idx, blank_word = mid_words[len(mid_words) // 2]
+            
+            # Create question
+            question_words = words.copy()
+            question_words[blank_idx] = "______"
+            
+            # Generate distractors (wrong answers)
+            all_words = [w for w in content.split() if len(w) > 4 and w.isalpha()]
+            distractors = [w for w in set(all_words) if w != blank_word][:3]
+            
+            if len(distractors) < 3:
+                distractors.extend(['option1', 'option2', 'option3'])
+                distractors = distractors[:3]
+            
+            options = [blank_word] + distractors
+            
+            # Shuffle options (deterministic for same input)
+            import random
+            random.Random(i).shuffle(options)
+            
+            questions.append({
+                'id': i + 1,
+                'question': ' '.join(question_words) + '?',
+                'options': options,
+                'correct_answer': blank_word,
+                'explanation': sentence
+            })
+        
+        return questions
+    
+    except Exception as e:
+        logger.error(f"Quiz generation error: {e}")
+        return []
+

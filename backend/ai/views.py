@@ -9,7 +9,11 @@ from .ai_utils import (
     generate_study_plan_text,
     generate_flashcard_questions,
     generate_study_advice,
-    extract_key_points
+    extract_key_points,
+    answer_question,
+    analyze_study_sentiment,
+    extract_keywords,
+    generate_quiz_questions
 )
 import os
 import logging
@@ -283,3 +287,223 @@ def get_study_advice(request):
             {'error': 'Failed to generate study advice', 'details': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AIRequestThrottle])
+def answer_study_question(request):
+    """
+    Answer a question based on study context using AI.
+    Expected input: { "question": "...", "context": "..." }
+    """
+    question = request.data.get('question', '')
+    context = request.data.get('context') or request.data.get('content', '')
+    
+    if not question or not context:
+        return Response(
+            {'error': 'Both question and context are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Handle if context is a dict
+    if isinstance(context, dict):
+        context = str(context)
+    
+    try:
+        prompt = f"Question: {question}. Context: {str(context)[:200]}..."
+        
+        # Use AI to answer question
+        result = answer_question(question, str(context))
+        
+        ai_response = {
+            'question': question,
+            'answer': result['answer'],
+            'confidence': result['confidence'],
+            'context_used': str(context)[result.get('start', 0):result.get('end', 100)]
+        }
+        
+        # Log the AI request
+        AIRequestLog.objects.create(
+            user=request.user,
+            prompt=prompt,
+            response=str(ai_response)[:1000]
+        )
+        
+        return Response(ai_response, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Question answering error: {e}")
+        return Response(
+            {'error': 'Failed to answer question', 'details': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AIRequestThrottle])
+def analyze_sentiment(request):
+    """
+    Analyze sentiment of study notes or reflections.
+    Expected input: { "text": "..." } or { "content": "..." }
+    """
+    text = request.data.get('text') or request.data.get('content', '')
+    
+    if not text:
+        return Response(
+            {'error': 'Text or content is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Handle if text is a dict
+    if isinstance(text, dict):
+        text = str(text)
+    
+    try:
+        prompt = f"Analyze sentiment of: {str(text)[:100]}..."
+        
+        # Use AI to analyze sentiment
+        result = analyze_study_sentiment(str(text))
+        
+        # Provide interpretation
+        interpretation = {
+            'positive': 'Your study notes show positive engagement and enthusiasm!',
+            'negative': 'Your notes suggest some frustration. Consider taking breaks or trying different study methods.',
+            'neutral': 'Your notes are objective and factual.'
+        }
+        
+        ai_response = {
+            'sentiment': result['sentiment'],
+            'confidence': result['confidence'],
+            'label': result['label'],
+            'interpretation': interpretation.get(result['sentiment'], 'Unable to determine sentiment.'),
+            'text_length': len(str(text).split())
+        }
+        
+        # Log the AI request
+        AIRequestLog.objects.create(
+            user=request.user,
+            prompt=prompt,
+            response=str(ai_response)[:1000]
+        )
+        
+        return Response(ai_response, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Sentiment analysis error: {e}")
+        return Response(
+            {'error': 'Failed to analyze sentiment', 'details': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AIRequestThrottle])
+def extract_study_keywords(request):
+    """
+    Extract important keywords from study content.
+    Expected input: { "text": "...", "num_keywords": 10 }
+    """
+    text = request.data.get('text') or request.data.get('content', '')
+    num_keywords = request.data.get('num_keywords', 10)
+    
+    if not text:
+        return Response(
+            {'error': 'Text or content is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Handle if text is a dict
+    if isinstance(text, dict):
+        text = str(text)
+    
+    try:
+        num_keywords = int(num_keywords)
+    except (ValueError, TypeError):
+        num_keywords = 10
+    
+    try:
+        prompt = f"Extract keywords from: {str(text)[:100]}..."
+        
+        # Extract keywords
+        keywords = extract_keywords(str(text), num_keywords)
+        
+        ai_response = {
+            'keywords': keywords,
+            'total_keywords': len(keywords),
+            'text_length': len(str(text).split())
+        }
+        
+        # Log the AI request
+        AIRequestLog.objects.create(
+            user=request.user,
+            prompt=prompt,
+            response=str(ai_response)[:1000]
+        )
+        
+        return Response(ai_response, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Keyword extraction error: {e}")
+        return Response(
+            {'error': 'Failed to extract keywords', 'details': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AIRequestThrottle])
+def generate_quiz(request):
+    """
+    Generate quiz questions from study content.
+    Expected input: { "content": "...", "num_questions": 5 }
+    """
+    content = request.data.get('content') or request.data.get('text', '')
+    num_questions = request.data.get('num_questions') or request.data.get('count', 5)
+    
+    if not content:
+        return Response(
+            {'error': 'Content or text is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+    
+    # Handle if content is a dict
+    if isinstance(content, dict):
+        content = str(content)
+    
+    try:
+        num_questions = int(num_questions)
+    except (ValueError, TypeError):
+        num_questions = 5
+    
+    try:
+        prompt = f"Generate {num_questions} quiz questions from: {str(content)[:200]}..."
+        
+        # Generate quiz questions
+        questions = generate_quiz_questions(str(content), num_questions)
+        
+        ai_response = {
+            'quiz': questions,
+            'total_questions': len(questions),
+            'source_length': len(str(content).split())
+        }
+        
+        # Log the AI request
+        AIRequestLog.objects.create(
+            user=request.user,
+            prompt=prompt,
+            response=str(ai_response)[:1000]
+        )
+        
+        return Response(ai_response, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Quiz generation error: {e}")
+        return Response(
+            {'error': 'Failed to generate quiz', 'details': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
