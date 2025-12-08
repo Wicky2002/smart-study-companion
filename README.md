@@ -16,11 +16,11 @@ A full-stack web application that helps students organize their study sessions, 
 
 ### 🤖 AI-Powered Study Assistant
 - **Text Summarization**: Get concise summaries of study materials using BART model
-- **Study Plan Generation**: Create personalized study schedules with GPT-2
+- **Study Plan Generation**: Create personalized study schedules with structured templates
 - **Flashcard Generation**: Auto-generate flashcards from topics
-- **Study Advice**: Get AI-powered study tips and recommendations
-- **Question Answering**: Ask questions about your study content and get AI answers
-- **Sentiment Analysis**: Analyze the sentiment of your study notes
+- **Study Advice**: Get contextual study tips based on your challenges
+- **Question Answering**: Ask questions about your study content and get AI answers with DistilBERT
+- **Sentiment Analysis**: Analyze the sentiment of your study notes with DistilBERT
 - **Keyword Extraction**: Identify important keywords and concepts
 - **Quiz Generation**: Generate multiple-choice quizzes from study materials
 
@@ -50,9 +50,9 @@ A full-stack web application that helps students organize their study sessions, 
 - **🤖 AI Models**:
   - **Transformers 4.36.0** - Hugging Face ML library
   - **PyTorch 2.1.2** - Deep learning framework
-  - **BART (facebook/bart-large-cnn)** - Text summarization
-  - **GPT-2** - Text generation for study plans
-  - **DistilBERT** - Question answering and sentiment analysis
+  - **BART (facebook/bart-large-cnn)** - Text summarization (~1.6GB)
+  - **DistilBERT** - Question answering and sentiment analysis (~250MB each)
+  - **Template-based Generation** - Structured study plans and advice
 
 ### Frontend
 - **React 19.2.0** - UI framework

@@ -52,12 +52,14 @@ def generate_study_plan(request):
         
         # Parse and structure the response
         daily_tasks = []
-        lines = ai_generated_text.split('\n')
+        lines = [line.strip() for line in ai_generated_text.split('\n') if line.strip() and line.strip().startswith('Day')]
         
-        for i in range(min(duration_days, 7)):
+        for i in range(min(duration_days, len(lines))):
+            # Extract the task description from the line (remove "Day X: " prefix)
+            task_description = lines[i].split(':', 1)[1].strip() if ':' in lines[i] else lines[i]
             daily_tasks.append({
                 'day': i + 1,
-                'task': f'Day {i + 1}: {lines[0] if lines else f"Focus on {topic} fundamentals"}',
+                'task': task_description,
                 'duration_minutes': 60,
                 'resources': ['Online tutorials', 'Practice exercises', 'Reading materials']
             })

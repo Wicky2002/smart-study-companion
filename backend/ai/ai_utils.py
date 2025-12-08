@@ -134,7 +134,7 @@ def summarize_text(content, max_length=150, min_length=50):
 
 def generate_study_plan_text(topic, duration_days, difficulty):
     """
-    Generate study plan suggestions using AI.
+    Generate study plan suggestions using structured templates.
     
     Args:
         topic (str): Study topic
@@ -145,21 +145,55 @@ def generate_study_plan_text(topic, duration_days, difficulty):
         str: Generated study plan text
     """
     try:
-        model = get_text_generation_model()
-        if model is None:
-            return "AI model not available. Please try again later."
+        # Structured study plan templates by difficulty
+        beginner_activities = [
+            f"Introduction to fundamental concepts of {topic}",
+            f"Understanding basic terminology and principles in {topic}",
+            f"Exploring simple examples and use cases of {topic}",
+            f"Practice basic exercises and problems in {topic}",
+            f"Review foundational concepts and take notes",
+            f"Watch introductory tutorials about {topic}",
+            f"Complete beginner-level practice problems"
+        ]
         
-        prompt = f"Create a {duration_days}-day study plan for learning {topic} at {difficulty} level. Day 1:"
+        intermediate_activities = [
+            f"Deep dive into core concepts of {topic}",
+            f"Study advanced techniques and methodologies in {topic}",
+            f"Work on intermediate-level problems and case studies",
+            f"Analyze real-world applications of {topic}",
+            f"Practice solving complex problems in {topic}",
+            f"Review and reinforce previous day's learning",
+            f"Complete challenging exercises and review solutions"
+        ]
         
-        result = model(
-            prompt,
-            max_length=200,
-            num_return_sequences=1,
-            temperature=0.7,
-            do_sample=True
-        )
+        advanced_activities = [
+            f"Master advanced concepts and theories in {topic}",
+            f"Explore cutting-edge research and applications of {topic}",
+            f"Solve expert-level problems and optimize solutions",
+            f"Study complex algorithms and implementations in {topic}",
+            f"Work on advanced projects applying {topic}",
+            f"Analyze edge cases and advanced scenarios",
+            f"Synthesize knowledge and prepare comprehensive review"
+        ]
         
-        return result[0]['generated_text']
+        # Select activities based on difficulty
+        if difficulty.lower() == 'beginner':
+            activities = beginner_activities
+        elif difficulty.lower() == 'advanced':
+            activities = advanced_activities
+        else:
+            activities = intermediate_activities
+        
+        # Generate plan overview
+        plan_text = f"This {duration_days}-day study plan will guide you through learning {topic} at {difficulty} level. "
+        plan_text += f"Each day focuses on building upon previous knowledge with structured learning activities.\n\n"
+        
+        # Add daily activities
+        for day in range(duration_days):
+            activity_index = day % len(activities)
+            plan_text += f"Day {day + 1}: {activities[activity_index]}\n"
+        
+        return plan_text
     
     except Exception as e:
         logger.error(f"Study plan generation error: {e}")
@@ -210,7 +244,7 @@ def generate_flashcard_questions(content, num_cards=5):
 
 def generate_study_advice(topic, struggles):
     """
-    Generate study advice using AI.
+    Generate study advice using knowledge-based templates.
     
     Args:
         topic (str): Current study topic
@@ -220,21 +254,44 @@ def generate_study_advice(topic, struggles):
         str: Generated advice
     """
     try:
-        model = get_text_generation_model()
-        if model is None:
-            return "AI model not available. Please try again later."
+        # Build contextual advice based on common study challenges
+        advice = f"Here's personalized advice for studying {topic}:\n\n"
         
-        prompt = f"Study advice for {topic}. Student struggles with: {struggles}. Advice:"
+        struggles_lower = struggles.lower()
         
-        result = model(
-            prompt,
-            max_length=150,
-            num_return_sequences=1,
-            temperature=0.7,
-            do_sample=True
-        )
+        # Provide specific advice based on mentioned struggles
+        if any(word in struggles_lower for word in ['understand', 'confus', 'difficult', 'hard']):
+            advice += "1. Break down complex concepts into smaller, manageable parts. Start with the fundamentals and gradually build up.\n"
+            advice += "2. Use analogies and real-world examples to relate new concepts to things you already know.\n"
+            advice += "3. Create visual diagrams or mind maps to visualize relationships between concepts.\n\n"
         
-        return result[0]['generated_text']
+        if any(word in struggles_lower for word in ['remember', 'forget', 'recall', 'memorize']):
+            advice += "1. Use active recall by testing yourself regularly instead of passive reading.\n"
+            advice += "2. Implement spaced repetition - review material at increasing intervals (1 day, 3 days, 1 week, etc.).\n"
+            advice += "3. Create mnemonic devices or acronyms to help remember key information.\n\n"
+        
+        if any(word in struggles_lower for word in ['time', 'manage', 'procrastinat', 'focus']):
+            advice += "1. Use the Pomodoro Technique: 25 minutes of focused study followed by 5-minute breaks.\n"
+            advice += "2. Set specific, achievable goals for each study session.\n"
+            advice += "3. Eliminate distractions by turning off notifications and finding a quiet study space.\n\n"
+        
+        if any(word in struggles_lower for word in ['practice', 'apply', 'problem', 'exercise']):
+            advice += "1. Start with easier problems to build confidence, then gradually increase difficulty.\n"
+            advice += "2. Analyze your mistakes to understand where you went wrong and learn from them.\n"
+            advice += "3. Try to solve problems without looking at solutions first, then check your work.\n\n"
+        
+        # Add general advice if specific struggles weren't detected
+        if len(advice.split('\n')) < 5:
+            advice += "General Study Tips:\n"
+            advice += "• Review material regularly rather than cramming before exams\n"
+            advice += "• Teach concepts to others to reinforce your understanding\n"
+            advice += "• Take notes in your own words to process information actively\n"
+            advice += "• Get enough sleep and exercise to maintain cognitive function\n"
+            advice += "• Form study groups to discuss challenging topics\n"
+        
+        advice += f"\nRemember: Everyone learns differently. Experiment with these techniques to find what works best for you with {topic}."
+        
+        return advice
     
     except Exception as e:
         logger.error(f"Advice generation error: {e}")

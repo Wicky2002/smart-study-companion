@@ -41,7 +41,31 @@ function AIAssistant() {
         duration_weeks: 4,
         difficulty: 'intermediate'
       });
-      setOutput(data.study_plan || data.message || 'Study plan generated successfully!');
+      
+      // Format the study plan object into readable text
+      if (data.study_plan) {
+        const plan = data.study_plan;
+        let formattedPlan = `📚 Study Plan for ${plan.topic}\n`;
+        formattedPlan += `Duration: ${plan.duration} days | Difficulty: ${plan.difficulty}\n\n`;
+        
+        // Show overview only if it's not too repetitive
+        const overviewLines = plan.ai_generated_overview.split('\n').filter(line => line.trim());
+        if (overviewLines.length > 0 && overviewLines[0].length < 200) {
+          formattedPlan += `${overviewLines[0]}\n\n`;
+        }
+        
+        formattedPlan += `📅 Daily Schedule:\n`;
+        plan.daily_tasks.forEach(task => {
+          formattedPlan += `\nDay ${task.day}: ${task.task}`;
+        });
+        formattedPlan += `\n\n📝 Study Tips:\n`;
+        plan.tips.forEach(tip => {
+          formattedPlan += `• ${tip}\n`;
+        });
+        setOutput(formattedPlan);
+      } else {
+        setOutput(data.message || 'Study plan generated successfully!');
+      }
     } catch (error) {
       console.error('Failed to generate study plan:', error);
       setOutput(`Error: ${error.message || 'Failed to generate study plan'}`);
