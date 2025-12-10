@@ -95,17 +95,9 @@ Navigate to: **http://localhost:5173**
 
 ---
 
-## 📖 Documentation
+## 📖 API Documentation
 
-- **[QUICK_START.md](QUICK_START.md)** - Get up and running in minutes
-- **[INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md)** - Complete integration documentation
-- **[INTEGRATION_SUMMARY.md](INTEGRATION_SUMMARY.md)** - Architecture and features overview
-- **[AI README](backend/ai/README_AI.md)** - 🤖 AI Features, models, and customization
-- **[BACKEND_FEATURES_IMPLEMENTED.md](backend/BACKEND_FEATURES_IMPLEMENTED.md)** - Backend API details
-- **[API_DOCUMENTATION.md](backend/API_DOCUMENTATION.md)** - API endpoints reference
-
-### API Documentation (Interactive)
-When backend is running:
+When backend is running, access interactive API docs:
 - **Swagger UI**: http://localhost:8000/swagger/
 - **ReDoc**: http://localhost:8000/redoc/
 
